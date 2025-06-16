@@ -25,13 +25,13 @@ type Tiramisu struct {
 
 func New(o TiramisuOptions) *Tiramisu {
 	w := wv.New(o.Debug)
+	w.SetSize(o.Width, o.Height, o.Hints)
+	w.SetTitle(o.Title)
+
 	t := &Tiramisu{
 		w:     w,
 		funcs: make(map[string]FuncHandler),
 	}
-
-	w.SetSize(o.Width, o.Height, o.Hints)
-	w.SetTitle(o.Title)
 
 	return t
 }

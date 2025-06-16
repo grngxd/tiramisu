@@ -49,6 +49,20 @@ func main() {
 }
 ```
 
+## Building
+
+### Windows
+Windows users should use the `-ldflags='-H windowsgui'` flag to avoid showing a console window when running the app.
+```
+go build -ldflags='-H windowsgui' ./example
+```
+
+### *nix
+```
+go build ./example
+```
+
+
 ## Contributing & Development
 ```
 git clone ssh://git@git.iwakura.rip:6969/grng/tiramisu.git
