@@ -3,6 +3,7 @@ package tiramisu
 import (
 	"embed"
 	"fmt"
+	"os"
 
 	wv "github.com/webview/webview_go"
 )
@@ -38,7 +39,8 @@ func New(o TiramisuOptions) *Tiramisu {
 func (t *Tiramisu) Run(fn func()) {
 	defer t.w.Destroy()
 	t.w.Dispatch(func() {
-		t.injectJS()
+		t.loadJSRuntime()
+		t.loadGoRuntime()
 
 		if fn != nil {
 			fn()
@@ -85,20 +87,24 @@ func (t *Tiramisu) Evalf(js string, args ...any) {
 
 func (t *Tiramisu) HTML(html string) {
 	t.w.SetHtml(html)
-	t.injectJS()
+	t.loadJSRuntime()
+	t.loadGoRuntime()
 }
 
 //go:embed runtime/out/*
 var runtimeFS embed.FS
 
-func (t *Tiramisu) injectJS() {
+func (t *Tiramisu) loadJSRuntime() {
 	js, err := runtimeFS.ReadFile("runtime/out/preload.js")
 	if err != nil {
 		panic(fmt.Sprintf("failed to read preload.js: %v", err))
 	}
 
 	t.w.Eval(string(js))
-	t.bind("invoke", func(args ...any) (any, error) {
+}
+
+func (t *Tiramisu) loadGoRuntime() {
+	t.bind("__TIRAMISU_INTERNAL_invoke", func(args ...any) (any, error) {
 		name, ok := args[0].(string)
 		if !ok {
 			return nil, fmt.Errorf("first argument must be a string, got %T", args[0])
@@ -107,5 +113,44 @@ func (t *Tiramisu) injectJS() {
 			return t.invoke(name)
 		}
 		return t.invoke(name, args[1:]...)
+	})
+
+	t.bind("__TIRAMISU_INTERNAL_readFile", func(args ...any) (any, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("readFile expects exactly one argument, got %d", len(args))
+		}
+
+		filename, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("readFile expects a string argument, got %T", args[0])
+		}
+
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			return nil, fmt.Errorf("error reading file %s: %w", filename, err)
+		}
+		return string(data), nil
+	})
+
+	t.bind("__TIRAMISU_INTERNAL_readDir", func(args ...any) (any, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("readDir expects exactly one argument, got %d", len(args))
+		}
+
+		dirname, ok := args[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("readDir expects a string argument, got %T", args[0])
+		}
+
+		files, err := os.ReadDir(dirname)
+		if err != nil {
+			return nil, fmt.Errorf("error reading directory %s: %w", dirname, err)
+		}
+
+		var fileNames []string
+		for _, file := range files {
+			fileNames = append(fileNames, file.Name())
+		}
+		return fileNames, nil
 	})
 }

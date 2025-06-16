@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <button onclick="greet()">Greet</button>
+        <button onclick="file()">Read File</button>
+        <button onclick="directory()">List Directory</button>
+        
+        <script>
+            function greet() {
+                tiramisu.invoke("hello", "world")
+                    .then(response => alert(response))
+                    .catch(console.error)
+            } 
+
+            function file() {
+                const filename = prompt("Enter the filename to read:");
+                if (!filename) return;
+                tiramisu.fs.readFile(filename)
+                    .then(data => alert("File content: " + data))
+                    .catch(error => alert("Error reading file: " + error.message));
+            }
+
+            function directory() {
+                const dirname = prompt("Enter the directory to list:");
+                if (!dirname) return;
+                tiramisu.fs.readDir(dirname)
+                    .then(files => alert("Files: " + files.join(", ")))
+                    .catch(error => alert("Error listing directory: " + error.message));
+            }
+        </script>
+    </body>
+</html>

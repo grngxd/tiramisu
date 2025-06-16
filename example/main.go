@@ -3,16 +3,21 @@ package main
 import (
 	"fmt"
 
+	_ "embed"
+
 	t "git.iwakura.rip/grng/tiramisu"
 	webview "github.com/webview/webview_go"
 )
 
+//go:embed index.html
+var html string
+
 func main() {
 	app := t.New(t.TiramisuOptions{
 		Debug:  true,
-		Width:  1200,
-		Height: 800,
-		Title:  "Tiramisu Example",
+		Width:  800,
+		Height: 600,
+		Title:  "Tiramisu",
 		Hints:  webview.HintFixed,
 	})
 
@@ -27,23 +32,6 @@ func main() {
 			return "Hello, unknown!", nil
 		})
 
-		app.HTML(`
-		<!DOCTYPE html>
-		<html>
-			<body>
-				<h1>Tiramisu Example</h1>
-				<p>Click the button to see a greeting:</p>
-				<button onclick="greet()">Greet</button>
-				
-				<script>
-				function greet() {
-					tiramisu.invoke("hello", "world")
-						.then(response => alert(response))
-						.catch(console.error)
-				}
-				</script>
-			</body>
-		</html>
-		`)
+		app.HTML(html)
 	})
 }
