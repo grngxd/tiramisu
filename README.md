@@ -50,7 +50,11 @@ func main() {
 ```
 
 ## Contributing & Development
-```bash
+```
+git clone ssh://git@git.iwakura.rip:6969/grng/tiramisu.git
+cd tiramisu
+air
+```
 
 ## License
 `tiramisu` is licensed under the GNU General Public License (GPL) v3.0. See the [LICENSE](LICENSE) file for more details.
