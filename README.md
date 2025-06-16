@@ -9,7 +9,7 @@ Build modern, cross-platform desktop apps in HTML + Go from one codebase. It use
 - ⚡**Fast development**: Use *ANY* web framework for  your UI. Tiramisu handles all the magic of making it work, for you.
 
 ## Installation
-`go install github.com/grngxd/tiramisu`
+`go install git.iwakura.rip/grng/tiramisu`
 
 ## Example
 
@@ -18,7 +18,7 @@ package main
 
 import (
     "fmt"
-    "github.com/grngxd/tiramisu"
+    "git.iwakura.rip/grng/tiramisu"
 )
 
 func main() {

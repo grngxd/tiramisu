@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	t "github.com/grngxd/tiramisu"
+	t "git.iwakura.rip/grng/tiramisu"
 	webview "github.com/webview/webview_go"
 )
 

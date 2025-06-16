@@ -1,4 +1,4 @@
-module github.com/grngxd/tiramisu
+module git.iwakura.rip/grng/tiramisu
 
 go 1.23.4
 
