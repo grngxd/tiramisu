@@ -2,9 +2,11 @@ package tiramisu
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"os"
 
+	toast "github.com/electricbubble/go-toast"
 	wv "github.com/webview/webview_go"
 )
 
@@ -19,6 +21,7 @@ type TiramisuOptions struct {
 type FuncHandler func(args ...any) (any, error)
 
 type Tiramisu struct {
+	o     TiramisuOptions
 	w     wv.WebView
 	funcs map[string]FuncHandler
 }
@@ -29,6 +32,7 @@ func New(o TiramisuOptions) *Tiramisu {
 	w.SetTitle(o.Title)
 
 	t := &Tiramisu{
+		o:     o,
 		w:     w,
 		funcs: make(map[string]FuncHandler),
 	}
@@ -104,27 +108,25 @@ func (t *Tiramisu) loadJSRuntime() {
 }
 
 func (t *Tiramisu) loadGoRuntime() {
+	// internal
 	t.bind("__TIRAMISU_INTERNAL_invoke", func(args ...any) (any, error) {
-		name, ok := args[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("first argument must be a string, got %T", args[0])
+		name, err := ArgAs[string](args, 0)
+		if err != nil {
+			return nil, err
 		}
+		// pass through any extra args
 		if len(args) == 1 {
 			return t.invoke(name)
 		}
 		return t.invoke(name, args[1:]...)
 	})
 
-	t.bind("__TIRAMISU_INTERNAL_readFile", func(args ...any) (any, error) {
-		if len(args) != 1 {
-			return nil, fmt.Errorf("readFile expects exactly one argument, got %d", len(args))
+	// filesystem
+	t.bind("__TIRAMISU_FILESYSTEM_readFile", func(args ...any) (any, error) {
+		filename, err := ArgAs[string](args, 0)
+		if err != nil {
+			return nil, err
 		}
-
-		filename, ok := args[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("readFile expects a string argument, got %T", args[0])
-		}
-
 		data, err := os.ReadFile(filename)
 		if err != nil {
 			return nil, fmt.Errorf("error reading file %s: %w", filename, err)
@@ -132,25 +134,76 @@ func (t *Tiramisu) loadGoRuntime() {
 		return string(data), nil
 	})
 
-	t.bind("__TIRAMISU_INTERNAL_readDir", func(args ...any) (any, error) {
-		if len(args) != 1 {
-			return nil, fmt.Errorf("readDir expects exactly one argument, got %d", len(args))
+	t.bind("__TIRAMISU_FILESYSTEM_readDir", func(args ...any) (any, error) {
+		dirname, err := ArgAs[string](args, 0)
+		if err != nil {
+			return nil, err
 		}
-
-		dirname, ok := args[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("readDir expects a string argument, got %T", args[0])
-		}
-
-		files, err := os.ReadDir(dirname)
+		entries, err := os.ReadDir(dirname)
 		if err != nil {
 			return nil, fmt.Errorf("error reading directory %s: %w", dirname, err)
 		}
-
-		var fileNames []string
-		for _, file := range files {
-			fileNames = append(fileNames, file.Name())
+		var names []string
+		for _, e := range entries {
+			names = append(names, e.Name())
 		}
-		return fileNames, nil
+		return names, nil
 	})
+
+	t.bind("__TIRAMISU_INTERNAL_exists", func(args ...any) (any, error) {
+		path, err := ArgAs[string](args, 0)
+		if err != nil {
+			return nil, err
+		}
+		_, err = os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return false, nil
+			}
+			return nil, fmt.Errorf("error checking existence of %s: %w", path, err)
+		}
+		return true, nil
+	})
+
+	// notifications
+	t.bind("__TIRAMISU_NOTIFICATIONS_notify", func(args ...any) (any, error) {
+		msg, err := ArgAs[string](args, 0)
+		if err != nil {
+			return nil, err
+		}
+		if err := toast.Push(msg); err != nil {
+			return nil, fmt.Errorf("error sending notification: %w", err)
+		}
+
+		return nil, nil
+	})
+}
+
+func Arg(args []any, i int) (any, error) {
+	if i < 0 || i >= len(args) {
+		return nil, fmt.Errorf("arg %d out of range [0..%d]", i, len(args)-1)
+	}
+	return args[i], nil
+}
+
+func ArgAs[T any](args []any, i int) (T, error) {
+	var t T
+
+	arg, err := Arg(args, i)
+	if err != nil {
+		return t, err
+	}
+
+	if v, ok := arg.(T); ok {
+		return v, nil
+	}
+
+	j, err := json.Marshal(arg)
+	if err != nil {
+		return t, fmt.Errorf("cannot marshal arg[%d]: %w", i, err)
+	}
+	if err := json.Unmarshal(j, &t); err != nil {
+		return t, fmt.Errorf("cannot unmarshal arg[%d] -> %T: %w", i, t, err)
+	}
+	return t, nil
 }

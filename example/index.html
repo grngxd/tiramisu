@@ -4,7 +4,8 @@
         <button onclick="greet()">Greet</button>
         <button onclick="file()">Read File</button>
         <button onclick="directory()">List Directory</button>
-        
+        <button onclick="notify()">Notify</button>
+
         <script>
             function greet() {
                 tiramisu.invoke("hello", "world")
@@ -26,6 +27,14 @@
                 tiramisu.fs.readDir(dirname)
                     .then(files => alert("Files: " + files.join(", ")))
                     .catch(error => alert("Error listing directory: " + error.message));
+            }
+
+            function notify() {
+                const message = prompt("Enter the notification message:");
+                if (!message) return;
+                tiramisu.notifications.notify(message)
+                    .then(() => alert("Notification sent!"))
+                    .catch(error => alert("Error sending notification: " + error.message));
             }
         </script>
     </body>
